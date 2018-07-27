@@ -54,24 +54,26 @@ fi
 
 # validate required vars are set
 
-if [ -z "${GOOGLE_PROJECT}" ]
+# for single instance, need the project.
+if [ -z "${GOOGLE_PROJECT}" ] && [ -n "${CLOUDSQL_INSTANCE}" ]
 then
    MISSING="GOOGLE_PROJECT ${MISSING}"
 fi
 
-if [ -z "${CLOUDSQL_ZONE}" ]
+# need the zone if you're using a single instance
+if [ -z "${CLOUDSQL_ZONE}" ] && [ -n "${CLOUDSQL_INSTANCE}" ]
 then
    MISSING="CLOUDSQL_ZONE ${MISSING}"
 fi
 
 # need xor singular cloudsql instance or multiple cloudsql instances
-if [ -z "${CLOUDSQL_INSTANCE}" && -z "${CLOUDSQL_INSTANCES}" ]
+if [ -z "${CLOUDSQL_INSTANCE}" ] && [ -z "${CLOUDSQL_INSTANCES}" ]
 then
    MISSING="CLOUDSQL_INSTANCE ${MISSING}"
 fi
 
 # if both singular instance and multiple instance are set, that's a problem
-if [ "${CLOUDSQL_INSTANCE}" && "${CLOUDSQL_INSTANCES}" ]
+if [ -n "${CLOUDSQL_INSTANCE}" ] && [ -n "${CLOUDSQL_INSTANCES}" ]
 then
    MISSING="CLOUDSQL_INSTANCE ${MISSING}"
 fi
@@ -95,11 +97,15 @@ then
    exit 1
 fi
 
-INSTANCES="${GOOGLE_PROJECT}:${CLOUDSQL_ZONE}"
-if ["${CLOUDSQL_INSTANCE}"]
-    INSTANCES="${CLOUDSQL_INSTANCE}:tcp:0.0.0.0:3306"
+# if using a single instance, we construct instances arg
+if [ -n "${CLOUDSQL_INSTANCE}" ]
+then
+    INSTANCES="${GOOGLE_PROJECT}:${CLOUDSQL_INSTANCE}:${CLOUDSQL_ZONE}:${CLOUDSQL_INSTANCE}:tcp:0.0.0.0:3306"
 fi
-if ["${CLOUDSQL_INSTANCES}"]
+
+# if using multiple instances, we just pass the instances arg through
+if [ -n "${CLOUDSQL_INSTANCES}" ]
+then
     INSTANCES="${CLOUDSQL_INSTANCES}"
 fi
 
