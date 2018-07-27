@@ -11,6 +11,7 @@ MISSING=""
 version=0
 help=0
 CLOUDSQL_PROXY_CMD="/cloud_sql_proxy"
+INSTANCES=""
 
 # default to unlimited conns
 CLOUDSQL_MAXCONNS=${CLOUDSQL_MAXCONNS-0}
@@ -63,7 +64,14 @@ then
    MISSING="CLOUDSQL_ZONE ${MISSING}"
 fi
 
-if [ -z "${CLOUDSQL_INSTANCE}" ]
+# need xor singular cloudsql instance or multiple cloudsql instances
+if [ -z "${CLOUDSQL_INSTANCE}" && -z "${CLOUDSQL_INSTANCES}" ]
+then
+   MISSING="CLOUDSQL_INSTANCE ${MISSING}"
+fi
+
+# if both singular instance and multiple instance are set, that's a problem
+if [ "${CLOUDSQL_INSTANCE}" && "${CLOUDSQL_INSTANCES}" ]
 then
    MISSING="CLOUDSQL_INSTANCE ${MISSING}"
 fi
@@ -79,12 +87,20 @@ then
           ;;
         "CLOUDSQL_ZONE") echo "  CLOUDSQL_ZONE: Google zone that instance resides in (us-central1-a, us-east1-b,..."
           ;;
-        "CLOUDSQL_INSTANCE") echo "  CLOUDSQL_INSTANCE: Specific name of the CLoudSQL instance"
+        "CLOUDSQL_INSTANCE") echo "  CLOUDSQL_INSTANCE: Specific name of a single CloudSQL instance or CLOUDSQL_INSTANCES: names and ports for multiple CloudSql instances"
           ;;
       esac 
    done
-   echo ; echo "Exitting!"
+   echo ; echo "Exiting!"
    exit 1
 fi
 
-exec ${CLOUDSQL_PROXY_CMD}  -instances=${GOOGLE_PROJECT}:${CLOUDSQL_ZONE}:${CLOUDSQL_INSTANCE}=tcp:0.0.0.0:3306 -max_connections=${CLOUDSQL_MAXCONNS} -credential_file=${CLOUDSQL_CREDENTIAL_FILE} ${CLOUDSQL_LOGGING}
+INSTANCES="${GOOGLE_PROJECT}:${CLOUDSQL_ZONE}"
+if ["${CLOUDSQL_INSTANCE}"]
+    INSTANCES="${CLOUDSQL_INSTANCE}:tcp:0.0.0.0:3306"
+fi
+if ["${CLOUDSQL_INSTANCES}"]
+    INSTANCES="${CLOUDSQL_INSTANCES}"
+fi
+
+exec ${CLOUDSQL_PROXY_CMD}  -instances=${INSTANCES} -max_connections=${CLOUDSQL_MAXCONNS} -credential_file=${CLOUDSQL_CREDENTIAL_FILE} ${CLOUDSQL_LOGGING}
