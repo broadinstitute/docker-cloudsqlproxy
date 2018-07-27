@@ -100,7 +100,7 @@ fi
 # if using a single instance, we construct instances arg
 if [ -n "${CLOUDSQL_INSTANCE}" ]
 then
-    INSTANCES="${GOOGLE_PROJECT}:${CLOUDSQL_INSTANCE}:${CLOUDSQL_ZONE}:${CLOUDSQL_INSTANCE}:tcp:0.0.0.0:3306"
+    INSTANCES="${GOOGLE_PROJECT}:${CLOUDSQL_ZONE}:${CLOUDSQL_INSTANCE}=tcp:0.0.0.0:3306"
 fi
 
 # if using multiple instances, we just pass the instances arg through
