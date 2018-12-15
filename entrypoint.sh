@@ -17,6 +17,16 @@ set -o pipefail
 MISSING=""
 CREDENTIALS=""
 CLOUDSQL_PROXY_CMD="/cloud_sql_proxy"
+SQLPROXY_ENVFILE=${SQLPROXY_ENVFILE:-"/etc/sqlproxy.env"}
+
+# for now expect env file to be shell export var
+
+# If env file exists then load environment from file
+if [ -r "${SQLPROXY_ENVFILE}" ]
+then
+   # load shell exports into env
+   . "${SQLPROXY_ENVFILE}"
+fi
 
 # Init vars if not set in environment
 GOOGLE_PROJECT=${GOOGLE_PROJECT:-""}
