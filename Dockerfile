@@ -1,4 +1,4 @@
-ARG DOCKER_TAG=1.11
+ARG DOCKER_TAG=1.30.0
 
 FROM gcr.io/cloudsql-docker/gce-proxy:${DOCKER_TAG}
 
