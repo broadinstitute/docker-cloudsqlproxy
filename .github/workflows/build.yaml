@@ -31,7 +31,6 @@ jobs:
           DEFAULT_BUMP: patch
           GITHUB_TOKEN: ${{ secrets.BROADBOT_TOKEN }}
           RELEASE_BRANCHES: ${{ github.event.repository.default_branch }}
-          WITH_V: true
 
       # GCP config
       - name: Auth to GCP
@@ -52,7 +51,7 @@ jobs:
           DOCKER_TAG="${{ steps.tag.outputs.tag }}"
           
           NAME="${GOOGLE_DOCKER_REPOSITORY}/${GOOGLE_PROJECT}/${REPOSITORY_NAME}/${IMAGE_NAME}"
-          TAGGED="${CLI_NAME}:${DOCKER_TAG}"
+          TAGGED="${NAME}:${DOCKER_TAG}"
           echo "NAME: ${NAME}"
           echo "TAGGED: ${TAGGED}"
           echo "name=${NAME}" >> $GITHUB_OUTPUT
