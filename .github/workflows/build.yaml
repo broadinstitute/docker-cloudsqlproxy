@@ -1,0 +1,78 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore: [ '*.md' ]
+  pull_request:
+    branches: [ '**' ]
+env:
+  GOOGLE_PROJECT: dsp-artifact-registry
+  # Name of the app-specific Docker repository configured in GOOGLE_PROJECT
+  REPOSITORY_NAME: cloudsqlproxy
+  IMAGE_NAME: cloudsqlproxy
+  # Region-specific Google Docker repository where GOOGLE_PROJECT/REPOSITORY_NAME can be found
+  GOOGLE_DOCKER_REPOSITORY: us-central1-docker.pkg.dev
+jobs:
+
+  build-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    steps:
+      # Git config
+      - name: Checkout current code
+        uses: actions/checkout@v2
+      - name: Bump the tag to a new version
+        uses: databiosphere/github-actions/actions/bumper@bumper-0.0.6
+        id: tag
+        env:
+          DEFAULT_BUMP: patch
+          GITHUB_TOKEN: ${{ secrets.BROADBOT_TOKEN }}
+          RELEASE_BRANCHES: ${{ github.event.repository.default_branch }}
+
+      # GCP config
+      - name: Auth to GCP
+        id: 'auth'
+        uses: google-github-actions/auth@v0
+        with:
+          workload_identity_provider: 'projects/1038484894585/locations/global/workloadIdentityPools/github-wi-pool/providers/github-wi-provider'
+          service_account: 'dsp-artifact-registry-push@dsp-artifact-registry.iam.gserviceaccount.com'
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v0
+      - name: Explicitly auth Docker for Artifact Registry
+        run: gcloud auth configure-docker $GOOGLE_DOCKER_REPOSITORY --quiet
+
+      # Build images
+      - name: Construct docker images name and tag
+        id: image-name
+        run: |
+          DOCKER_TAG="${{ steps.tag.outputs.tag }}"
+          
+          NAME="${GOOGLE_DOCKER_REPOSITORY}/${GOOGLE_PROJECT}/${REPOSITORY_NAME}/${IMAGE_NAME}"
+          TAGGED="${NAME}:${DOCKER_TAG}"
+          echo "NAME: ${NAME}"
+          echo "TAGGED: ${TAGGED}"
+          echo "name=${NAME}" >> $GITHUB_OUTPUT
+          echo "tagged=${TAGGED}" >> $GITHUB_OUTPUT
+
+      - name: Build image
+        run: |
+          docker build -t ${{ steps.image-name.outputs.tagged }} -f Dockerfile .
+
+      # Publish images
+      - name: Run Trivy vulnerability scanner
+        # From https://github.com/broadinstitute/dsp-appsec-trivy-action
+        uses: broadinstitute/dsp-appsec-trivy-action@v1
+        with:
+          image: ${{ steps.image-name.outputs.tagged }}
+      - name: Push image
+        run: |
+          docker push ${{ steps.image-name.outputs.tagged }}
+      - name: Add latest tag to Docker image
+        if: github.event_name != 'pull_request'
+        run: |
+          gcloud artifacts docker tags add \
+            "${{ steps.image-name.outputs.tagged }}" \
+            "${{ steps.image-name.outputs.name }}:latest"
