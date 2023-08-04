@@ -6,6 +6,10 @@ on:
     paths-ignore: [ '*.md' ]
   pull_request:
     branches: [ '**' ]
+  schedule:
+    # weekly auto build to pick up APK updates
+    - cron:  '0 12 * * 3'
+
 env:
   GOOGLE_PROJECT: dsp-artifact-registry
   # Name of the app-specific Docker repository configured in GOOGLE_PROJECT
