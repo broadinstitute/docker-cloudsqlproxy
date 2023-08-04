@@ -1,6 +1,6 @@
-ARG DOCKER_TAG=1.33.6-alpine
+FROM gcr.io/cloudsql-docker/gce-proxy:1.33.6-alpine
 
-FROM gcr.io/cloudsql-docker/gce-proxy:${DOCKER_TAG}
+RUN apk update && apk upgrade --no-cache
 
 COPY entrypoint.sh /
 
